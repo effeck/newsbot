@@ -9,7 +9,7 @@ from database.models import SessionLocal, Post
 from core.rss_parser import RSSParser
 from core.ai_processor import AIProcessor
 from core.publisher import Publisher
-from config.settings import GROQ_API_KEY
+# Убран импорт GROQ_API_KEY
 
 logger = logging.getLogger(__name__)
 
