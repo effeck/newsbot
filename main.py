@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
-from config.settings import BOT_TOKEN, GROQ_API_KEY
+from config.settings import BOT_TOKEN  # GROQ_API_KEY удалён
 from bot.handlers import router
 from admin.panel import admin_router
 from core.scheduler import Scheduler
@@ -67,10 +67,12 @@ async def main():
         logger.critical("❌ BOT_TOKEN не найден! Проверьте ваш .env файл.")
         return
 
-    if not GROQ_API_KEY:
-        logger.critical("❌ GROQ_API_KEY не найден! Проверьте ваш .env файл.")
-        return
-
+    # Проверка GROQ_API_KEY удалена, теперь используется GigaChat
+    # Если хотите проверять GIGACHAT_CREDENTIALS — раскомментируйте:
+    # from config.settings import GIGACHAT_CREDENTIALS
+    # if not GIGACHAT_CREDENTIALS:
+    #     logger.critical("❌ GIGACHAT_CREDENTIALS не найден! Проверьте ваш .env файл.")
+    #     return
 
     migrate_db()
 
