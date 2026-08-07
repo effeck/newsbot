@@ -9,10 +9,13 @@ ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x]
 # GigaChat (российский ИИ)
 GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS")
 
-# Groq больше не используется, но оставлено для совместимости (можно удалить)
+# Модель по умолчанию (используется в database/models.py и др.)
+DEFAULT_AI_MODEL = "GigaChat"   # или "GigaChat-Pro", "GigaChat-Max"
+
+# Удаляем всё, что связано с Groq (теперь не используется)
 # GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 # GROQ_MODELS = [...]
-# DEFAULT_AI_MODEL = ...
+# DEFAULT_AI_MODEL = "llama-3.1-8b-instant"
 
 RSS_CHECK_INTERVAL = 3600
 MAX_CHANNELS_PER_USER = 5
