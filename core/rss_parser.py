@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 import hashlib
 import logging
+import chardet
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +35,26 @@ class RSSParser:
                     if response.status != 200:
                         logger.warning(f"Ошибка загрузки RSS {url}: статус {response.status}")
                         return []
-                    content = await response.text()
+                    raw_content = await response.read()
+                    # Определяем кодировку
+                    detected = chardet.detect(raw_content)
+                    encoding = detected.get('encoding', 'utf-8') if detected else 'utf-8'
+                    try:
+                        content = raw_content.decode(encoding)
+                    except UnicodeDecodeError:
+                        # Если не получилось, пробуем KOI8-R (популярная кодировка для OpenNet)
+                        try:
+                            content = raw_content.decode('koi8-r')
+                        except:
+                            content = raw_content.decode('utf-8', errors='ignore')
             else:
-                # Если сессии нет, используем feedparser напрямую (но без заголовков)
+                # fallback
                 feed = feedparser.parse(url)
-                content = None  # не используется
+                content = None
 
-            # Если мы загрузили контент, передаём его в feedparser
             if content:
                 feed = feedparser.parse(content)
             else:
-                # fallback
                 feed = feedparser.parse(url)
 
             if not feed.entries:
@@ -73,10 +83,7 @@ class RSSParser:
             content = self.extract_content(entry)
             media = self.extract_media(entry)
 
-            # **УБИРАЕМ ОБЯЗАТЕЛЬНОЕ ТРЕБОВАНИЕ МЕДИА** — теперь новости без картинок тоже добавляются
-            # if not media:
-            #     return None
-
+            # Убираем обязательное требование медиа
             return {
                 'guid': entry.get('id', entry.get('link', '')),
                 'title': entry.get('title', 'No title'),
@@ -108,7 +115,7 @@ class RSSParser:
         # Убираем лишние пробелы
         text = ' '.join(text.split())
 
-        # **УВЕЛИЧИВАЕМ ЛИМИТ ДО 10000 СИМВОЛОВ** (можно убрать совсем)
+        # Если текст слишком длинный, обрезаем (но оставляем достаточно)
         if len(text) > 10000:
             text = text[:10000] + '...'
         return text
@@ -142,8 +149,7 @@ class RSSParser:
             except:
                 pass
 
-        # Возвращаем уникальные ссылки
-        return list(dict.fromkeys(media_urls))[:1]  # берём только первую картинку
+        return list(dict.fromkeys(media_urls))[:1]
 
     async def download_image(self, url: str) -> Optional[bytes]:
         if not self.session:
