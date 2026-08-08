@@ -16,7 +16,7 @@ class AIProcessor:
         self.credentials = os.getenv("GIGACHAT_CREDENTIALS")
         self.model = os.getenv("GIGACHAT_MODEL", "GigaChat")
         self.temperature = float(os.getenv("GIGACHAT_TEMPERATURE", 0.7))
-        self.max_tokens = int(os.getenv("GIGACHAT_MAX_TOKENS", 800))
+        self.max_tokens = int(os.getenv("GIGACHAT_MAX_TOKENS", 1500))  # увеличен для более длинных ответов
         self.verify_ssl = os.getenv("GIGACHAT_VERIFY_SSL", "false").lower() == "true"
 
         if not self.credentials:
@@ -35,7 +35,7 @@ class AIProcessor:
 
     async def process_content(self, entry: Dict, ch_settings: Dict) -> str:
         """
-        Обрабатывает новость через GigaChat с вашим промптом.
+        Обрабатывает новость через GigaChat с журналистским промптом.
         """
         try:
             # Получаем текст новости
@@ -50,24 +50,22 @@ class AIProcessor:
 
             logger.info(f"Обработка новости: {title[:50]}... Длина контента: {len(clean_content)}")
 
-            # Формируем промпт с вашим текстом
+            # Новый журналистский промпт
             prompt = f"""
-Ты – профессиональный новостной редактор. Твоя задача – переработать предоставленный новостной текст для публикации в Telegram-канале.
+Ты — профессиональный журналист-репортёр. Перепиши новость так, чтобы она звучала как полноценный репортаж для Telegram-канала.
 
 Требования:
-- Сделай текст кратким (не более 500 символов).
-- Сохрани все ключевые факты: что произошло, где, когда, кто участники.
-- Убери воду, клише, повторы.
-- Переформулируй, чтобы текст был живым и понятным широкой аудитории.
-- В конце добавь хэштеги (не более 3), отражающие тему (например, #Технологии #Rust #Новости).
-- Оригинал пиши на русском языке (если новость на другом языке – переведи на русский и отредактируй).
-- После хэштегов добавь "@infinewss".
+1. Напиши текст в журналистском стиле — живым, понятным языком, с вступлением и контекстом.
+2. Начни с яркого заголовка (первая строка, жирным шрифтом через <b>).
+3. В теле текста раскрой суть события: что произошло, кто участники, где, когда, почему это важно.
+4. Текст должен быть не менее 200 символов, постарайся сделать его содержательным.
+5. В конце добавь ссылку на источник (если есть) и хэштеги (не более 3).
+6. После хэштегов поставь "@infinewss".
 
-Исходный новостной текст:
----
+Исходный текст новости:
 {clean_content}
----
-Твой ответ должен содержать только отредактированный текст, хэштеги и "@infinewss" – без лишних пояснений.
+
+Твой ответ должен содержать только готовый пост — без лишних пояснений.
             """
 
             # Отправляем запрос в GigaChat
@@ -79,7 +77,7 @@ class AIProcessor:
             if response and response.choices and len(response.choices) > 0:
                 result = response.choices[0].message.content.strip()
                 logger.info(f"GigaChat успешно обработал новость (токенов: {response.usage.total_tokens})")
-                return result[:1500]
+                return result[:2000]  # Увеличил лимит до 2000 символов
             else:
                 logger.warning("GigaChat вернул пустой ответ")
                 return await self._fallback_format(title, clean_content)
@@ -97,13 +95,16 @@ class AIProcessor:
             if len(content) > 600:
                 content = content[:600] + "..."
 
-            # Простое форматирование
-            result = f"📰 {title}\n\n{content}\n\n#новости @infinewss"
+            # Улучшенное резервное форматирование
+            if content.strip():
+                result = f"📰 {title}\n\n{content}\n\n#новости @infinewss"
+            else:
+                result = f"📰 {title}\n\n#новости @infinewss"
             return result[:1500]
 
         except Exception as e:
             logger.error(f"Ошибка в резервном форматировании: {str(e)}")
-            return f"📰 {title}\n\n{content[:300]}...\n\n#новости @infinewss"
+            return f"📰 {title}\n\n#новости @infinewss"
 
     def _clean_html(self, text: str) -> str:
         """
