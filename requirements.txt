@@ -9,3 +9,4 @@ Pillow
 python-dotenv
 markdown2
 gigachat
+chardet>=5.0.0
